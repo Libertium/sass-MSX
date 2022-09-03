@@ -71,7 +71,41 @@
     <None Include="App.config" />
     <EmbeddedResource Include="Tables\z80.table" />
     <EmbeddedResource Include="Tables\z80alt.table" />
+    <None Include="tests\incbin\demosong.z80" />
+    <None Include="tests\trilo\voltable_combined.bin" />
     <None Include="Todo.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="tests\bios.asm" />
+    <Content Include="tests\incbin\demosong.asm" />
+    <Content Include="tests\incbin\test.asm" />
+    <Content Include="tests\org\test.asm" />
+    <Content Include="tests\rom\test.asm" />
+    <Content Include="tests\test.asm" />
+    <Content Include="tests\test10.asm">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="tests\test2.asm" />
+    <Content Include="tests\test3.asm" />
+    <Content Include="tests\test4.asm" />
+    <Content Include="tests\test5.asm" />
+    <Content Include="tests\test6.asm" />
+    <Content Include="tests\test7.asm" />
+    <Content Include="tests\test8.asm" />
+    <Content Include="tests\test9.asm" />
+    <Content Include="tests\test_dir_negative.asm" />
+    <Content Include="tests\test_indirect_index_negative.asm">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="tests\test_page.asm" />
+    <Content Include="tests\test_r800.asm" />
+    <Content Include="tests\trilo\demosong.asm" />
+    <Content Include="tests\trilo\demosong2.asm" />
+    <Content Include="tests\trilo\main.asm" />
+    <Content Include="tests\trilo\main_asMSX.asm" />
+    <Content Include="tests\trilo\ttreplay.asm" />
+    <Content Include="tests\trilo\ttreplayDAT.asm" />
+    <Content Include="tests\trilo\ttreplayRAM.asm" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
