@@ -10,3 +10,4 @@ TestResults/
 *.psess
 *.vsp
 sass/sass
+/.vs/sass/v15/Server/sqlite3

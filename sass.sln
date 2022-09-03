@@ -1,7 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "sass", "sass\sass.csproj", "{D04D976D-CF1E-4945-88BC-18B290CCE90F}"
+# Visual Studio 2013
+VisualStudioVersion = 12.0.40629.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "sasSX", "sass\sasSX.csproj", "{D04D976D-CF1E-4945-88BC-18B290CCE90F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -14,10 +16,10 @@ Global
 		{D04D976D-CF1E-4945-88BC-18B290CCE90F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D04D976D-CF1E-4945-88BC-18B290CCE90F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
-	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = sass\sass.csproj
-	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = sass\sass.csproj
 	EndGlobalSection
 EndGlobal

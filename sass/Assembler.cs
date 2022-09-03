@@ -1642,8 +1642,11 @@ namespace sasSX
             }
 			// Cesc
 			catch(Exception ex) {
-				if(Settings.Verbose != VerboseLevels.Quiet)
-					Console.WriteLine ("Cesc Exception: {0}", ex.Message);
+                if (Settings.Verbose != VerboseLevels.Quiet)
+                {
+                    Console.WriteLine("Cesc Exception: {0}", ex.Message);
+                    Console.WriteLine(" in:  [{0}]", line);
+                }
 			}
             return null;
         }
