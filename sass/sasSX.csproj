@@ -1,118 +1,24 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{D04D976D-CF1E-4945-88BC-18B290CCE90F}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>sasSX</RootNamespace>
     <AssemblyName>sasSX</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <TargetFrameworkProfile>
-    </TargetFrameworkProfile>
-    <FileAlignment>512</FileAlignment>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <!-- The assembly attributes live in Properties/AssemblyInfo.cs, kept as is. -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- Keep the output at bin/<Config>/sasSX.exe, the path the Makefile and the
+         MSX Game Tools docs point at. -->
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Commandlineparameters>--listing test.txt  --asmsx --inc wd/ wd/game.asm</Commandlineparameters>
-    <Externalconsole>true</Externalconsole>
-    <ConsolePause>false</ConsolePause>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Externalconsole>true</Externalconsole>
-    <Commandlineparameters>--listing test.list --asmsx tests/trilo/main.asm</Commandlineparameters>
-    <ConsolePause>false</ConsolePause>
-  </PropertyGroup>
+
+  <!-- The z80 tables are read at run time by name (Program.cs: LoadInternalSet
+       "sasSX.Tables.z80.table"), so the resource id is pinned, not derived. -->
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-    <Reference Include="Mono.CSharp" />
+    <EmbeddedResource Include="Tables\z80.table" LogicalName="sasSX.Tables.z80.table" />
+    <EmbeddedResource Include="Tables\z80alt.table" LogicalName="sasSX.Tables.z80alt.table" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Assembler.cs" />
-    <Compile Include="AssemblyError.cs" />
-    <Compile Include="AssemblyOutput.cs" />
-    <Compile Include="AssemblySettings.cs" />
-    <Compile Include="AssemblyWarning.cs" />
-    <Compile Include="CodeType.cs" />
-    <Compile Include="ExpressionEngine.cs" />
-    <Compile Include="Extensions.cs" />
-    <Compile Include="ImmediateValue.cs" />
-    <Compile Include="Instruction.cs" />
-    <Compile Include="InstructionSet.cs" />
-    <Compile Include="Listing.cs" />
-    <Compile Include="Macro.cs" />
-    <Compile Include="Operand.cs" />
-    <Compile Include="OperandGroup.cs" />
-    <Compile Include="Program.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RelativeLabel.cs" />
-    <Compile Include="Symbol.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config" />
-    <EmbeddedResource Include="Tables\z80.table" />
-    <EmbeddedResource Include="Tables\z80alt.table" />
-    <None Include="tests\incbin\demosong.z80" />
-    <None Include="tests\trilo\voltable_combined.bin" />
-    <None Include="Todo.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="tests\bios.asm" />
-    <Content Include="tests\incbin\demosong.asm" />
-    <Content Include="tests\incbin\test.asm" />
-    <Content Include="tests\org\test.asm" />
-    <Content Include="tests\rom\test.asm" />
-    <Content Include="tests\test.asm" />
-    <Content Include="tests\test10.asm">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="tests\test2.asm" />
-    <Content Include="tests\test3.asm" />
-    <Content Include="tests\test4.asm" />
-    <Content Include="tests\test5.asm" />
-    <Content Include="tests\test6.asm" />
-    <Content Include="tests\test7.asm" />
-    <Content Include="tests\test8.asm" />
-    <Content Include="tests\test9.asm" />
-    <Content Include="tests\test_dir_negative.asm" />
-    <Content Include="tests\test_indirect_index_negative.asm">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="tests\test_page.asm" />
-    <Content Include="tests\test_r800.asm" />
-    <Content Include="tests\trilo\demosong.asm" />
-    <Content Include="tests\trilo\demosong2.asm" />
-    <Content Include="tests\trilo\main.asm" />
-    <Content Include="tests\trilo\main_asMSX.asm" />
-    <Content Include="tests\trilo\ttreplay.asm" />
-    <Content Include="tests\trilo\ttreplayDAT.asm" />
-    <Content Include="tests\trilo\ttreplayRAM.asm" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

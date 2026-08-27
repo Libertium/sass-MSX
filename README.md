@@ -227,9 +227,17 @@ constant. Here's some example uses of each:
 
 # Compiling from Source
 
-**Windows**: "msbuild" from the root directory of the project.
+This branch (`net10`) is an SDK-style project targeting .NET 10. Build it with
+the .NET SDK on any platform, no Mono required:
 
-**Linux/Mac**: "xbuild" from the root directory of the project.
+    dotnet build -c Release
+
+The executable is `sass/bin/Release/sasSX.exe` (`sasSX.dll` run through the
+platform apphost). `dotnet run --project sass -- [parameters] [input file]` also
+works. `make` and `make install` still wrap these commands.
+
+The pre-`net10` `master` branch keeps the old `.NET Framework` project built with
+`msbuild` (Windows) or `xbuild` + Mono (Linux/Mac).
 
 ## Help, Bugs, Feedback
 

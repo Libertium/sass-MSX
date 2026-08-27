@@ -39,11 +39,14 @@ namespace sasSX
 			if (expre == "0" || string.IsNullOrWhiteSpace(expre))
 				return 0;
 
-			if (expre.EndsWith ("_")) 
-				return (ulong)relativeLabels (expre, rootLineNumber);
+			if (expre.EndsWith ("_"))
+				return (ulong)(long)relativeLabels (expre, rootLineNumber);
 
 			// Cesc TODO, els operadors amb mes d'un caracter son problematics, es pot fer millor ?
-			return(ulong) EvaluateSimple (expre.Replace("<<", "<").Replace(">>",">"));
+			// Go through long so a negative result wraps (0xFF... for -1) instead of
+			// saturating to 0: .NET Core clamps out-of-range double->ulong casts, the
+			// old .NET Framework build wrapped them. Callers rely on the wrap for .db -1.
+			return (ulong)(long) EvaluateSimple (expre.Replace("<<", "<").Replace(">>",">"));
 		}
 
 		// Evaluate the expression.
