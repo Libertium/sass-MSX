@@ -1122,7 +1122,7 @@ namespace sasSX
 											fs.Seek(amountSkip, SeekOrigin.Begin);
 							
 										byte[] fileBytes = new byte[amountSize];
-										fs.Read(fileBytes, 0, (int)amountSize);
+										fs.ReadExactly(fileBytes, 0, (int)amountSize);
 										fs.Close();
 
 										if(Settings.Verbose != VerboseLevels.Quiet)
