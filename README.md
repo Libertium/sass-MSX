@@ -1,118 +1,206 @@
-# SirCmpwn's Assembler
+# sasSX — Ensamblador de z80 per a MSX
 
-SirCmpwn's Assembler (sass) is a multiplatform, two-pass assembler written in C#. Presently, it supports
-z80 out of the box, as well as any user-provided instruction sets. It runs on Windows, Linux and Mac, as
-well as several other platforms in the form of a library.
+`sasSX` és un ensamblador de z80 de dues passades orientat a l'MSX: produeix
+binaris plans, ROMs de cartutx (16K/32K amb capçalera `AB`) i megaROMs amb
+mapejador, i entén una taula d'instruccions compatible amb la sintaxi d'**asMSX**.
+És un fork de *SirCmpwn's Assembler*, ara com a projecte **.NET 10** que compila i
+s'executa a Windows, Linux i macOS sense res més que el SDK de .NET.
 
-## Using SASS
+---
 
-On Linux or Mac, make sure that you have Mono installed, and prepend any commands to run Organic with
-"mono", similar to running Java programs. Note that the default Mono on Ubuntu isn't the full install,
-remove it and install "mono-complete".
+## D'on ve i cap on va
 
-### Command Line Usage
+**Origen — un ensamblador genèric.** *SirCmpwn's Assembler* (`sass`) va néixer dins
+el projecte **KnightOS**, un sistema operatiu per a calculadores TI. Era un
+ensamblador de z80 multiplataforma, de dues passades, escrit en C#, amb la sortida
+pensada com un `.bin` pla: ni capçaleres, ni bancs, ni res específic de cap màquina.
 
-Usage: sass.exe [parameters] [input file] [output file]
+**El gir a l'MSX (2016).** *Libertium Games* el va bifurcar, el va rebatejar
+`sasSX` i el va orientar al cartutx d'MSX. Les peces que es van afegir:
 
-[output file] is optional, and [input file].bin will be used if it is not specified.
+- capçalera de ROM amb la signatura `AB` i punt d'entrada (`.rom` + `.start`);
+- `.megarom` amb mapejadors (Konami, Konami SCC, ASCII8, ASCII16) i subpàgines;
+- `.page` / `.subpage` per situar el codi als bancs;
+- `.bios` per portar les etiquetes de la BIOS;
+- `.module` / `.endmodule` per a etiquetes amb espai de noms;
+- el mode `--asmsx`: taula d'instruccions alternativa (indirecció amb `[]` en lloc
+  de `()`), `@@etiqueta` per a locals i sortida de símbols pensada per conviure amb
+  **asMSX**, l'ensamblador de referència del món MSX.
 
-#### Parameters
+El desenvolupament es va aturar cap a finals de 2016 amb uns quants ítems a mig fer
+(vegeu el [full de ruta](#full-de-ruta)).
 
-You may customize sass's usage at the command line with a number of parameters.
+**La revifada (2026).** `sasSX` torna a moure's com a **motor de
+[MSX Game Tools](https://github.com/eslamod/MSX-Game-Tools)**: l'editor exporta
+`.asm` i el compara byte a byte amb el `.bin` que ell mateix genera, ensamblant-lo
+amb `sasSX`; i les ROMs de prova de `msx/test_rom` es construeixen amb ell. De
+passada s'ha modernitzat a un projecte **SDK-style de .NET 10** —el mateix SDK que
+l'editor, sense Mono ni `xbuild`— i s'han corregit dues diferències de comportament
+que .NET Core introduïa respecte del build antic (avaluació d'expressions negatives
+i lectura parcial a `.incbin`).
 
-**--encoding \[name]**: Sets the string encoding to use for string literals. Note that .asciiz and related directives
-  will use the specified encoding, not ASCII. The default is "utf-8".
+L'objectiu recuperat és que `sasSX` sigui un ensamblador d'MSX **complet**: tancar
+la megaROM, arreglar `.phase` i `.rept`, treure una taula de símbols en format
+asMSX i un `--help` de debò.
 
-**--help**: Displays information on sass usage and basic documentation. *Aliases: -h -? /? /help -help*
+---
 
-**--include \[path(s)]**: Modifies the include path. This should be a semicolon-delimited list of paths to look
-  for files included with <> in. Example: `--include "/foo;/bar"` *Aliases: --inc*
+## Estat actual
 
-**--input-file \[file]**: An alternative way to specify the input file. *Aliases: --input*
+**Plataforma.** Projecte SDK-style de .NET 10. Compila i corre a Windows, Linux i
+macOS només amb el SDK de .NET.
 
-**--instruction-set \[set]**: Specifies the instruction set to use. May be a key to reference an internal set
-  (see [below](#supported-architectures)), or a path to a user-specified instruction set file. *Aliases: --instr*
+**Arquitectura.** z80, amb dues taules: l'estàndard i la de `--asmsx` (indirecció
+amb `[]`). Insensible a majúscules i minúscules.
 
-**--listing \[file]**: Specifies a file to output a listing to. *Aliases: -l*
+**Sortides.**
 
-**--list-encodings**: Lists all available string encodings and their keys for use in --encoding. This will terminate
-  sass without assembling any files.
+- Binari pla (`[fitxer].bin` per defecte, o `-` per treure-ho per la sortida
+  estàndard).
+- ROM de cartutx: amb `.rom` la sortida es genera en trams de 8K a partir de
+  `0x4000`, i `.start` hi posa la capçalera de 16 bytes (`AB` + punter d'inici).
+  Les ROMs de `msx/test_rom` en surten de 16384 o 32768 bytes exactes.
+- Listing (`--listing`).
+- Taula de símbols (`--symbols`), en format `.equ etiqueta 0xADREÇA` — **encara
+  no** en format asMSX.
 
-**--output-file \[file]**: An alternative way to specify the output file. *Aliases: --output*
+**Directives que funcionen.** `.org`, `.page`, `.rom`, `.start`, `.bios`,
+`.incbin` (amb desplaçament i mida, i el PC s'actualitza), `.ds` / `.fill` (amb
+límit de `0xFFFF`), `.db` / `.dw` / `.byte` / `.word` (amb nombres negatius),
+`.equ`, `.define` / `.undefine`, `.macro`, `.module` / `.endmodule`, `.ascii` /
+`.asciiz` / `.asciip`, `.if` / `.ifdef` / `.ifndef` / `.else` / `.elif` /
+`.endif`, `.list` / `.nolist`, `.error`, `.end` / `.endfile`, comentaris de bloc
+`/* */` i de línia `;` i `//`.
 
-**--symbols [file]**: Outputs all labels and their addresses to a file using `.equ` so that they may be included
-  again elsewhere. *Aliases: -s*
+**A mig fer o amb errors coneguts.**
 
-**--verbose**: Outputs a listing to standard output after assembly completion. *Aliases: -v*
+- `.megarom`: la detecció de mapejador té un error (només encerta uns quants
+  noms), i el control de sobreeiximent de subpàgina només actua amb `.org`.
+- `.phase` / `.dephase`: les referències absolutes dins del bloc no es
+  reubiquen bé.
+- `.rept` / `.endr`: no omple els bytes del bloc, que queden a `00`.
+- `.block`: no té el límit de `0xFFFF` que sí tenen `.ds` i `.fill`.
+- `echo`, `print`, `printdec`, `printtext`: de moment només donen el PC.
+- `--help`: bolca una llista de fragments de codi, no ajuda de debò.
+- Amb algunes entrades malformades (per exemple `.bios` sense trobar `bios.asm`)
+  peta amb un `IndexOutOfRangeException` en lloc de donar un error net.
+- `.basic`: no està implementada; l'ensamblador la reporta com a directiva no
+  vàlida i continua.
 
-## Supported Architectures
+**Proves.** El joc de `sass/tests/*.asm`, i com a validació externa les quatre
+ROMs de `msx/test_rom` de MSX Game Tools: la sortida (ROM, símbols i listing) surt
+idèntica byte a byte a la del build antic amb Mono.
 
-Out of the box, sass supports the following architectures:
+---
 
-* z80 [`z80`]
-* *GameBoy Assembly [`LR35902` or `gbz80`]* (Planned)
+## Compilació i execució
 
-In [brackets], the instruction set key is shown for use whith the --instruction-set command line parameter.
-If not otherwise specified, the default instruction set is z80.
+```sh
+dotnet build -c Release
+```
 
-User-specified instruction sets may be added. *TODO: Document instruction set format*
+Surt `sass/bin/Release/sasSX` (`sasSX.exe` a Windows). També:
 
-## Syntax
+```sh
+dotnet run --project sass -- [paràmetres] [fitxer.asm] [sortida]
+```
 
-*All examples are given in z80 assembly*
+`make` i `make install` són embolcalls prims de `dotnet build` i `dotnet publish`.
 
-SASS's assembly syntax attempts to be as close to other popular syntaxes as possible. Here's some example
-z80 code that assembles under SASS:
+---
 
+## Ús per línia de comandes
+
+```
+Usage: sasSX [paràmetres] [fitxer d'entrada] [fitxer de sortida]
+```
+
+El fitxer de sortida és opcional; si no s'indica, s'usa `[fitxer d'entrada].bin`.
+Amb `-` com a sortida, el binari va a la sortida estàndard.
+
+| Paràmetre | Àlies | Què fa |
+| --- | --- | --- |
+| `--asmsx` | `-as` | Taula d'instruccions alternativa i sintaxi compatible amb asMSX (indirecció amb `[]`, `@@etiqueta`). |
+| `--define NOM[,NOM…]` | `-d` | Defineix símbols amb valor `1` (llista separada per comes). |
+| `--encoding NOM` | | Codificació per als literals de text (`.ascii` i companyia). Per defecte `utf-8`. |
+| `--include RUTES` | `--inc` | Rutes on buscar els fitxers inclosos amb `<...>`, separades per `;`. |
+| `--input-file F` | `--input` | Manera alternativa d'indicar el fitxer d'entrada. |
+| `--instruction-set S` | `--instr` | Joc d'instruccions: una clau interna (`z80`, `z80alt`) o la ruta d'un fitxer propi. |
+| `--listing F` | `-l` | Escriu un listing de l'ensamblatge al fitxer indicat. |
+| `--list-encodings` | | Llista les codificacions disponibles i acaba. |
+| `--nest-macros` | | Permet macros niades. |
+| `--output-file F` | `--output` | Manera alternativa d'indicar el fitxer de sortida. |
+| `--symbols F` | `-s` | Escriu les etiquetes i les seves adreces en format `.equ`. Sense argument, `[entrada].sym`. |
+| `--verbose[:nivell]` | `-v` | Detall de sortida: `0` quiet, `1` minimal, `2` normal, `3` detailed, `4` diagnostic. |
+| `--help` | `-h`, `-?`, `/?` | Ajuda (de moment, incompleta). |
+
+---
+
+## Sintaxi
+
+Els exemples són en z80.
+
+`sasSX` intenta acostar-se a les sintaxis habituals:
+
+```asm
         ld b, 20 + 0x13
-    label1:
+    etiqueta1:
         inc c
-        djnz label1
+        djnz etiqueta1
+```
 
-SASS is completely case-insensitive, and whitespace may be used as you please. The exception is that
-dropping newlines requires you to add \ in their place, like so: "ld a, 1 \ add a, b". However, any
-number of tabs or spaces in any location is permissible, though "AD D a, b" is invalid, as is
-"ADDa, b". Labels may use the "label:" form (preferred), or the ":label" form.
+És insensible a majúscules i minúscules, i els espais i tabuladors es poden posar
+com es vulgui. L'excepció és que per ajuntar dues instruccions en una línia cal
+posar `\` on aniria el salt de línia: `ld a, 1 \ add a, b`. Ara bé, `AD D a, b`
+no és vàlid, ni `ADDa, b`. Les etiquetes admeten la forma `etiqueta:` (preferida) o
+`:etiqueta`.
 
-Additionally, SASS supports nearly every form that an instruction may be presented in. For instance, each
-of the following lines of code is acceptable:
+S'accepten gairebé totes les formes d'una instrucció:
 
+```asm
     cp a, (ix + 10)
     cp a, (10 + ix)
     cp (ix + 10)
-    cp (10 + ix)
     cp (ix)
     cp a, (ix)
+```
 
 ### Expressions
 
-Anywhere a number is required, you may use an expression. Expressions are evaluated with respect to
-order of operations, using C precedence. The following operators are available:
+Allà on cal un nombre, s'hi pot posar una expressió. S'avaluen amb la precedència
+d'operadors de C. Operadors disponibles:
 
-    * / % + - << >> < <= > >= == != & ^ | && ||
+```
+* / % + - << >> < <= > >= == != & ^ | && ||
+```
 
-Boolean operators will assemble to "1" if true, or "0" if false.
+Els operadors booleans donen `1` si cert i `0` si fals. Els nombres es poden
+escriure en decimal, hexadecimal (`0x1F`, `$1F`, `1Fh`), binari (`0b1010`,
+`1010b`) i octal (`0o17`), i poden ser negatius. El prefix `%` per a binari
+(`%1010`) encara xoca amb l'operador mòdul; useu `0b…` o `…b`.
 
-### Relative Addressing
+### Adreçament relatiu
 
-You may use relative labels, spasm-style, to simplify your code. You may define any number of labels called `_`
-and refer to them with `[-+]*_` to refer to the nearest ones. Add `+` to get the next label, and the next, and so
-on, and `-` to refer to previous relative labels.
+Es poden definir tantes etiquetes anomenades `_` com calgui i referir-s'hi amb
+`[-+]*_` per apuntar a les més properes. `+` apunta a la següent, `++` a la del
+darrere, i `-` a l'anterior:
 
+```asm
     _: ; A
-        jp _ ; Refers to B
-        jp -_ ; Refers to A
-        jp ++_ ; Refers to C
+        jp _   ; apunta a B
+        jp -_  ; apunta a A
+        jp ++_ ; apunta a C
     _: ; B
         ld a, b
     _: ; C
+```
 
-### Local Labels
+### Etiquetes locals
 
-sass allows you to define local labels, which allows you to reuse common label names, such as "loop". You may
-preface any label name with "." to declare it as local, and it will be local within the prior global label.
-Example:
+Una etiqueta amb `.` al davant és local dins de l'última etiqueta global. Així es
+poden reaprofitar noms com `bucle`:
 
+```asm
     global1:
         ld a, b
     .local:
@@ -120,131 +208,146 @@ Example:
     global2:
         ld b, a
     .local:
-        call .local ; Does not cause a Duplicate Name error
+        call .local ; no dona error de nom duplicat
+```
+
+Amb `--asmsx`, `@@local` és sinònim de `.local`.
 
 ### Macros
 
-Macros are defined through `.macro` and may be used in most conditions. To define a macro, use something like
-this:
-
-    .macro example
-        ld a, b
-    .endmacro
-
-This defines a parameterless macro called "example". You needn't indent the contents of the macro; it's done
-here for clarity. You may also define parameters:
-
-    .macro example(foo, bar)
+```asm
+    .macro exemple(foo, bar)
         ld a, foo
         ld b, bar
     .endmacro
 
-This is a simple substitution macro. When called (like `example(a, b)`), 'foo' and 'bar' will be replaced with
-'a' and 'b' respectively. Here's a more in-depth example:
+    exemple(1, 2) ; passa a: ld a, 1 \ ld b, 2
+```
 
-    .macro example(foo, bar)
-        ld a, foo
-        ld b, bar
-    .endmacro
-    .macro add(a, b)
-        a+b
-    .endmacro
-    example(1, 2) ; Becomes ld a, 1 \ ld b, 2
-    ld a, add(2, 3) ; Becomes ld a, 2+3
+Sense paràmetres també val (`.macro exemple` … `.endmacro`). Les macros niades
+estan permeses (`--nest-macros`).
 
-## Pre-Processor Directives
+---
 
-Directives are indicated by a '.' or '#' as the first character, as in "#include \<foo.h>".
+## Directives
 
-**ascii "\[text]"**: Converts "text" to the global string encoding (**not** ASCII) and inserts it into the output.
+Les directives comencen per `.` o per `#`.
 
-**asciiz "\[text]"**: Converts "text" to the global string encoding (**not** ASCII) and inserts it into the output,
-  postfixed with a zero.
+### Generals
 
-**asciip "\[text]"**: Converts "text" to the global string encoding (**not** ASCII) and inserts it into the output,
-  prefixed with its 8-bit length.
+| Directiva | Què fa |
+| --- | --- |
+| `.ascii "text"` | Insereix el text en la codificació global (**no** ASCII). |
+| `.asciiz "text"` | Igual, amb un zero al final. |
+| `.asciip "text"` | Igual, precedit de la seva llargada en 8 bits. |
+| `.db val, val, …` | Insereix bytes. `.byte` n'és sinònim; sense valor, `0`. |
+| `.dw val, val, …` | Insereix paraules (16 bits a z80). `.word` n'és sinònim. |
+| `.block mida` | Reserva `mida` bytes a `0`. |
+| `.fill mida[, valor]` | Insereix `mida` còpies de `valor` (per defecte `0`). Límit `0xFFFF`. |
+| `.ds mida[, valor]` | Sinònim de `.fill`. |
+| `.equ clau valor` | Crea un símbol amb el valor de l'expressió. |
+| `.define clau valor` | Crea una macro d'una línia. |
+| `.undefine clau` | Elimina una definició. |
+| `.if expr` / `.ifdef s` / `.ifndef s` | Assemblatge condicional fins a `.endif`. |
+| `.else` / `.elif` / `.elseif` | Branca alternativa. |
+| `.include "fitxer"` / `.include <fitxer>` | Insereix un fitxer. `"..."` el busca al directori actual; `<...>`, a les rutes de `--include`. |
+| `.list` / `.nolist` | Reprèn / atura el listing. |
+| `.error "text"` | Atura amb un error. |
+| `.echo msg, …` | Trau missatges en temps d'ensamblatge (**a mig fer**). |
+| `.end` / `.endfile` | Fi de l'ensamblatge. |
+| `.exec ordre [args]` | Executa una ordre externa i insereix la seva sortida estàndard al binari. |
+| `.org valor` | Fixa el comptador de programa. No afegeix res a la sortida. |
 
-**block \[size]**: Sets aside *size* bytes, all set to 0. See **fill** if you require a value other than 0.
+**`.define` o `.equ`?** `.define` crea una macro: té més sobrecàrrega i s'ha
+d'usar amb mesura. `.equ` iguala un nom a un valor i crea un símbol, molt més
+barat. Quan es pugui, `.equ`. Un cas on cal `.define` és per a una constant de
+text:
 
-**db \[value], \[value], ...**: Inserts any number of 8-bit *values* into the output.
-
-**dw \[value], \[value], ...**: Inserts any number of n-bit *values* into the output, where n is the
-  number of bits to a word in the target architecture.
-
-**define \[key] \[value]**: Creates a one-line macro, whose name is "key" and whose replacement text is "value".
-
-**echo \[message], \[message], ...**: Echos any number of *messages* to the console at assembly time. If
-  *message* is not a string, it will be treated as an expression and echoed as a number.
-
-**else**: If the matching if, ifdef, or ifndef directive evalulates to false, the code between this and the matching
-  endif directive will be inserted instead.
-
-**endif**: Closes a corresponding if, ifdef, or ifndef directive.
-
-**equ \[key] \[value]**: Creates a symbol whose name is "key", with "value" as the value. "value" must be a valid
-  expression.
-
-**fill \[size], (value)**: Inserts *size* number of *values* into the output. Default *value* is 0.
-
-**if \[expression]**: If "expression" evalutates to zero, all the code until the matching endif directive will be
-  omitted from the output.
-
-**ifdef \[symbol]**: If "symbol" is not defined as a symbol or macro, all the code until the matching endif directive
-  will be omitted from the output.
-
-**include \[path]**: Inserts the specified file's contents into the assembly. \[path] may be `"localfile"` or
-  `<includedfile>`, where the former expects the file to be in the current working directory, and the latter
-  looks for any files within the include path specified at the command line.
-
-**list**: Resumes listing.
-
-**nolist**: Stops listing. This stops the assembler from evaluating any code until the corresponding list directive.
-
-**org \[value]**: Sets the internal program counter to *value*. This does not add to the output, but will affect
-  labels defined later on.
-
-**What's the difference between define and equ?** Define creates a macro. These have more overheard and take longer
-to evaluate during assembly, and should be used sparingly. Equ "equates" a name with a value, and creates a symbol,
-which has far less overhead. Use this one if you can. One example of where you need to use define is to define a string
-constant. Here's some example uses of each:
-
-    .define text "Hello, world"
-    .equ otherText "Hello, world" ; Doesn't work
-    .equ value 0x1234 - 28
-    
+```asm
+    .define text "Hola, món"
     .asciiz text
-    ld hl, value
-    
-    .define function(arg1, arg2) ld a, arg1 \ ld b, arg2
-    
-    function(10, 20) ; Becomes ld a, 10 \ ld b, 20
-    
-    .define add(arg1, arg2) arg1 + arg2
-    
-    ld a, add(10, value) ; Can use symbols in macro invocation
-    
-    .define foo ; Adds a symbol where "foo" equals 1 (special case, doesn't create a macro)
 
-# Compiling from Source
+    .equ valor 0x1234 - 28
+    ld hl, valor
+```
 
-This branch (`net10`) is an SDK-style project targeting .NET 10. Build it with
-the .NET SDK on any platform, no Mono required:
+### Específiques d'MSX
 
-    dotnet build -c Release
+| Directiva | Què fa |
+| --- | --- |
+| `.page N` | Situa el codi a la pàgina `N` (0–3) de 16K: `0`→`0x0000`, `1`→`0x4000`, `2`→`0x8000`, `3`→`0xC000`. |
+| `.rom` | Mode ROM: la sortida es genera en trams de 8K des de `0x4000`. |
+| `.start etiqueta` | Punt d'entrada del cartutx; hi posa la capçalera de 16 bytes (`AB` + punter). |
+| `.bios` | Porta les etiquetes de la BIOS (`bios.asm` implícit). |
+| `.megarom mapejador` | Capçalera i estructura de megaROM. Defineix ja la subpàgina 0. **A mig fer.** |
+| `.subpage N at $ADREÇA` | Subpàgina d'una megaROM en una adreça. |
+| `.module nom` / `.endmodule` | Etiquetes amb espai de noms: `nom.etiqueta`. |
+| `.phase X` / `.dephase` | Ensambla en una adreça però declara les etiquetes en una altra (codi que després es copia a un altre lloc). **A mig fer.** |
+| `.rept N` / `.endr` | Repeteix el bloc `N` vegades. **A mig fer** (no omple els bytes). |
 
-The executable is `sass/bin/Release/sasSX.exe` (`sasSX.dll` run through the
-platform apphost). `dotnet run --project sass -- [parameters] [input file]` also
-works. `make` and `make install` still wrap these commands.
+Mapejadors de `.megarom`:
 
-The pre-`net10` `master` branch keeps the old `.NET Framework` project built with
-`msbuild` (Windows) or `xbuild` + Mono (Linux/Mac).
+| Mapejador | Subpàgina | Límit | Mida màxima | Notes |
+| --- | --- | --- | --- | --- |
+| `Konami` | 8K | 32 pàgines | 256 KB | La subpàgina 0 (`0x4000`–`0x5FFF`) és fixa. |
+| `KonamiSCC` | 8K | 64 pàgines | 512 KB | Accés al xip de so SCC de Konami. |
+| `ASCII8` | 8K | 256 pàgines | 2 MB | |
+| `ASCII16` | 16K | 256 pàgines | 4 MB | |
 
-## Help, Bugs, Feedback
+---
 
-If you need help with KnightOS, want to keep up with progress, chat with
-developers, or ask any other questions about KnightOS, you can hang out in the
-IRC channel: [#knightos on irc.freenode.net](http://webchat.freenode.net/?channels=knightos).
- 
-To report bugs, please create [a GitHub issue](https://github.com/KnightOS/KnightOS/issues/new) or contact us on IRC.
- 
-If you'd like to contribute to the project, please see the [contribution guidelines](http://www.knightos.org/contributing).
+## Full de ruta
+
+Reemplaça l'antic `sass/Todo.txt` (juliol de 2016).
+
+### Fet
+
+- Línies amb comentari `;` que donaven error en ensamblar.
+- Mode `--asmsx`: taula alternativa i codi generat compatible amb asMSX;
+  `@@etiqueta` com a local, també dins d'`.include`.
+- `.incbin` amb desplaçament i mida, i el PC s'actualitza amb els bytes afegits.
+- `.ds` com a sinònim de `.fill`; límit de `0xFFFF` a `.fill` i `.ds`.
+- Tabulador entre `.org` i l'adreça (abans s'ignorava l'`.org`).
+- Nombres negatius a `.db` i a les expressions (`X .equ 0-17` ja no dona
+  *ValueTruncated*). Corregit del tot a la revifada, amb la conversió
+  `double → ulong` passant per `long`.
+- `.module` / `.endmodule`.
+- `/* */` i `//` tractats en llegir el fitxer, per mantenir els números de línia.
+- `--verbose` amb nivells (`0`–`4`).
+- Port a .NET 10 (SDK-style); `.incbin` amb `ReadExactly` (lectura parcial).
+
+### A mig fer
+
+- `.megarom`: arreglar la detecció de mapejador i el control de sobreeiximent de
+  subpàgina; avisar de les pàgines no definides.
+- `.phase` / `.dephase`: reubicar bé les referències absolutes dins del bloc.
+- `.rept` / `.endr`: omplir els bytes del bloc (ara queden a `00`).
+- `.block`: aplicar-hi el límit de `0xFFFF`.
+
+### Pendent
+
+- Un `--help` de debò.
+- `echo` / `print` / `printdec` / `printtext` amb format per cada cas.
+- Validar el càlcul d'expressions (`.equ valor 0x1234 - 28`).
+- El prefix `%` per a binari (`%1010`), que ara xoca amb l'operador mòdul.
+- Taula de símbols en format asMSX (`00h:401Ch ETIQUETA`) per als depuradors de
+  BlueMSX i openMSX.
+- Substituir els `Console.WriteLine` de diagnòstic per avisos i errors
+  estructurats a les entrades del listing.
+- Encapsular els camps de configuració de `Assembler` en un tipus `Parameters`.
+- No petar amb `IndexOutOfRangeException` davant d'entrades malformades.
+- Netejar els avisos de l'analitzador ara que és SDK-style (nullable, `CA…`).
+- Implementar `.basic` o treure-la.
+
+---
+
+## Llicència i crèdits
+
+Fork de [*SirCmpwn's Assembler*](https://github.com/KnightOS/sass) (projecte
+KnightOS), amb les modificacions per a MSX de Libertium Games. L'upstream es
+distribueix sota llicència MIT.
+
+## Errors i suggeriments
+
+Obriu una incidència a
+[github.com/Libertium/sass-MSX](https://github.com/Libertium/sass-MSX/issues).
