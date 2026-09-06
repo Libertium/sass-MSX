@@ -1,0 +1,118 @@
+# Ready-to-run sasSX binaries, so using the assembler does not require installing
+# the .NET SDK and building it: one self-contained file per platform, attached to
+# the release for the tag that triggered this.
+name: release
+
+on:
+  push:
+    # The tags here are bare versions: 1.3.7, 1.3.8...
+    tags: ['*.*.*']
+  # And by hand, to try the whole thing without tagging anything.
+  workflow_dispatch:
+
+permissions:
+  # To create the release and upload the files to it.
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # One runner is enough for the four platforms because none of this is AOT:
+      # a single-file publish is the .NET host plus the managed code, and neither
+      # depends on the machine doing the publishing.
+      #
+      # Not trimmed on purpose. It would cut these from ~70 MB to ~20 MB, but the
+      # z80 tables are read at run time by resource name and the saving is not
+      # worth finding out the hard way that something else was, too.
+      - name: Publish every platform
+        run: |
+          set -eu
+
+          # Compressed, which nearly halves it (73 MB to 39 MB) at the cost
+          # of a slightly slower first start, and without symbols, which
+          # nobody downloading a binary is going to read.
+          for rid in win-x64 linux-x64 osx-x64 osx-arm64; do
+            dotnet publish sass/sasSX.csproj -c Release -r "$rid" \
+              --self-contained true \
+              -p:PublishSingleFile=true \
+              -p:IncludeNativeLibrariesForSelfExtract=true \
+              -p:EnableCompressionInSingleFile=true \
+              -p:DebugType=none \
+              -o "publish/$rid"
+          done
+
+          # And one for whoever already has the .NET runtime: a few hundred KB
+          # instead of seventy megabytes. Without an apphost, so it is the same
+          # file everywhere and it is run as `dotnet sasSX.dll`.
+          dotnet publish sass/sasSX.csproj -c Release \
+            -p:UseAppHost=false -p:DebugType=none -o publish/portable
+
+      # Before releasing it, check that what came out assembles something. A
+      # publish that produces a file which cannot run still succeeds.
+      - name: Check that it assembles
+        run: |
+          set -eu
+
+          here="$GITHUB_WORKSPACE"
+
+          chmod +x "$here/publish/linux-x64/sasSX"
+          (cd sass/tests && "$here/publish/linux-x64/sasSX" test.asm "$here/smoke.bin")
+          test -s "$here/smoke.bin"
+
+      - name: Pack them
+        run: |
+          set -eu
+
+          mkdir -p out
+
+          for folder in publish/*; do
+            rid="$(basename "$folder")"
+            name="sasSX-$GITHUB_REF_NAME-$rid"
+
+            cp README.md "$folder/"
+            if [ -f LICENSE ]; then cp LICENSE "$folder/"; fi
+
+            # Zip for Windows and for the portable one, which is meant to be
+            # unpacked anywhere; tar for the rest, which have to keep the
+            # executable bit.
+            if [ "$rid" = win-x64 ] || [ "$rid" = portable ]; then
+              (cd "$folder" && zip -qr "$GITHUB_WORKSPACE/out/$name.zip" .)
+            else
+              chmod +x "$folder/sasSX"
+              tar -czf "out/$name.tar.gz" -C "$folder" .
+            fi
+          done
+
+          ls -l out
+
+      - name: Attach them to the release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+
+          # Re-running the workflow for a tag that already has its release
+          # replaces the files instead of failing.
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" out/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" out/* \
+              --title "sasSX $GITHUB_REF_NAME" --generate-notes
+          fi
+
+      # Run by hand there is no tag to hang them on, so they stay as artifacts of
+      # the run, which is enough to download them and check they work.
+      - uses: actions/upload-artifact@v4
+        if: github.ref_type != 'tag'
+        with:
+          name: sasSX-${{ github.sha }}
+          path: out/
